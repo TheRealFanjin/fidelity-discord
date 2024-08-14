@@ -6,8 +6,8 @@ from fidelityAPI import fidelity
 import discord
 
 load_dotenv()
-user = os.getenv('USERNAME')
-pswd = os.getenv('PASSWORD')
+user = os.getenv('FID_USERNAME')
+pswd = os.getenv('FID_PASSWORD')
 token = os.getenv('TOKEN')
 
 f = fidelity(user, pswd)
