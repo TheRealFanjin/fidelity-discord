@@ -1,3 +1,4 @@
+#### **Please have the fidelity mobile app installed
 ## Installation
 ### Docker (currently not working, use python)
 1. Clone repository into folder: `git clone https://github.com/TheRealFanjin/fidelity-api.git`
