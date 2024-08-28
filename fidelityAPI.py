@@ -141,6 +141,7 @@ class fidelity:
                 WebDriverWait(driver, 20).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="dest-acct-dropdown"]'))).click()
                 try:
+                    time.sleep(1)
                     account_number = re.search(r'Z\d{8}', driver.find_element(By.XPATH,
                                                                               f'//*[@id="account{counter}"]').text).group()
                     driver.find_element(By.XPATH, f'//*[@id="ett-acct-sel-list"]/ul/li[{counter + 1}]').click()
