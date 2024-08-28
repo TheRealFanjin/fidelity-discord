@@ -157,8 +157,8 @@ class fidelity:
                 if buy:
                     price1 = float(driver.find_element(By.XPATH, '//*[@id="eq-ticket__last-price"]/span[2]').text[1:])
                     if price1 > price0:
-                        driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
-                            round(price1 + 0.05, 2))
+                        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]'))).send_keys(
+                            str(round(price1 + 0.05, 2)))
                         price0 = round(price1 + 0.05, 2)
                 time.sleep(2)
                 WebDriverWait(driver, 20).until(
