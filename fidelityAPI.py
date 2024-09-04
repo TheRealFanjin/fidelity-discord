@@ -49,7 +49,7 @@ class fidelity:
         except NoSuchElementException:
             pass
 
-    def __enter_stock_details(self, driver, buy, stock):
+    def __enter_stock_details(self, driver, buy, stock, after_hours):
         actions = ActionChains(driver)
         driver.find_element(By.XPATH, '//*[@id="eq-ticket-dest-symbol"]').send_keys(stock)
         time.sleep(3)
@@ -57,17 +57,31 @@ class fidelity:
             actions.move_to_element(driver.find_element(By.XPATH, '//*[@id="0"]/span[1]')).click().perform()
         except NoSuchElementException:
             return False
-        time.sleep(3)
+        time.sleep(2)
         if buy:
             actions.move_to_element(
                 driver.find_element(By.XPATH, '//*[@id="action-buy"]/s-root/div')).click().perform()
-            actions.move_to_element(
-                driver.find_element(By.XPATH, '//*[@id="market-no"]/s-root/div')).click().perform()
         else:
             actions.move_to_element(
                 driver.find_element(By.XPATH, '//*[@id="action-sell"]/s-root/div')).click().perform()
-            actions.move_to_element(driver.find_element(By.XPATH, '//*[@id="market-yes"]/s-root/div')).click().perform()
-        time.sleep(3)
+        if after_hours:
+            time.sleep(3)
+            actions.move_to_element(driver.find_element(By.XPATH,
+                                                        '/html/body/div[3]/ap122489-ett-component/div/order-entry-base/div/div/div[1]/div/equity-order-selection/div[2]/order-selection/div/div[1]/div/label')).click().perform()
+            time.sleep(1)
+            actions.move_to_element(
+                driver.find_element(By.XPATH, '//*[@id="market-no"]/s-root/div')).click().perform()
+
+        else:
+            time.sleep(3)
+            if buy:
+                actions.move_to_element(
+                    driver.find_element(By.XPATH, '//*[@id="market-no"]/s-root/div')).click().perform()
+            else:
+                actions.move_to_element(
+                    driver.find_element(By.XPATH, '//*[@id="market-yes"]/s-root/div')).click().perform()
+
+        time.sleep(2)
         driver.find_element(By.XPATH, '//*[@id="eqt-shared-quantity"]').send_keys('1')
         time.sleep(1)
         return True
@@ -148,17 +162,30 @@ class fidelity:
                 except NoSuchElementException:
                     break
 
+                try:
+                    driver.find_element(By.XPATH,
+                                        '/html/body/div[3]/ap122489-ett-component/div/order-entry-base/div/div/div[1]/div/equity-order-selection/div[2]/order-selection/div/div[1]/div/label')
+                    after_hours = True
+
+                except NoSuchElementException:
+                    after_hours = False
+
                 if first:
-                    response = self.__enter_stock_details(driver, buy, stock)
+                    response = self.__enter_stock_details(driver, buy, stock, after_hours)
                     if not response:
                         await ctx.send(f'Error finding {stock} for account {account_number}')
                         continue
 
-                if buy:
-                    price1 = float(driver.find_element(By.XPATH, '//*[@id="eq-ticket__last-price"]/span[2]').text[1:])
+                price1 = float(driver.find_element(By.XPATH, '//*[@id="eq-ticket__last-price"]/span[2]').text[1:])
+                if buy or after_hours:
                     if price1 > price0:
-                        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]'))).send_keys(
-                            str(round(price1 + 0.05, 2)))
+                        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]'))).clear()
+                        if buy:
+                            driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
+                                str(round(price1 + 0.05, 2)))
+                        if after_hours and not buy:
+                            driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
+                                str(round(price1 - 0.05, 2)))
                         price0 = round(price1 + 0.05, 2)
                 time.sleep(2)
                 WebDriverWait(driver, 20).until(
@@ -190,7 +217,6 @@ class fidelity:
 
     async def __bs_on_specified_accounts(self, ctx, buy, stocks, accounts):
         driver = self.__init_driver()
-        actions = ActionChains(driver)
         await self.__login(ctx, driver)
         driver.get('https://digital.fidelity.com/ftgw/digital/trade-equity/index/orderEntry')
         for stock in stocks:
@@ -217,16 +243,33 @@ class fidelity:
 
                 if not_found:
                     continue
+                try:
+                    driver.find_element(By.XPATH,
+                                        '/html/body/div[3]/ap122489-ett-component/div/order-entry-base/div/div/div[1]/div/equity-order-selection/div[2]/order-selection/div/div[1]/div/label')
+                    after_hours = True
+
+                except NoSuchElementException:
+                    after_hours = False
+
                 if first:
-                    response = self.__enter_stock_details(driver, buy, stock)
+                    response = self.__enter_stock_details(driver, buy, stock, after_hours)
                     if not response:
                         await ctx.send(f'Error finding {stock} for account {account_number}')
                         continue
-                if buy:
-                    price1 = float(driver.find_element(By.XPATH, '//*[@id="eq-ticket__last-price"]/span[2]').text[1:])
+
+                price1 = float(driver.find_element(By.XPATH, '//*[@id="eq-ticket__last-price"]/span[2]').text[1:])
+                if buy or after_hours:
                     if price1 > price0:
+                        WebDriverWait(driver, 20).until(EC.presence_of_element_located(
+                            (By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]'))).clear()
+                        if buy:
+                            driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
+                                str(round(price1 + 0.05, 2)))
+                        if after_hours and not buy:
+                            driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
+                                str(round(price1 - 0.05, 2)))
                         driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
-                            round(price1 + 0.05, 2))
+                            str(round(price1 + 0.05, 2)))
                         price0 = round(price1 + 0.05, 2)
                 time.sleep(2)
                 WebDriverWait(driver, 20).until(
