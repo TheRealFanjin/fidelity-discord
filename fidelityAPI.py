@@ -196,20 +196,20 @@ class fidelity:
                 error_response = self.__error_popup_check(driver)
                 if buy:
                     if error_response is True:
-                        await ctx.send(f'Successfully placed order for account {account_number} for {stock}')
+                        await ctx.send(f'({counter + 1}) Successfully placed buy order for account {account_number} for {stock}')
                     elif error_response is False:
-                        await ctx.send(f'Unknown Error/Timeout purchasing stock {stock} for account {account_number}')
+                        await ctx.send(f'({counter + 1}) Unknown Error/Timeout purchasing stock {stock} for account {account_number}')
                         break
                     else:
-                        await ctx.send(f"""Failed to purchase {stock} on account {account_number}: {error_response}""")
+                        await ctx.send(f"""({counter + 1}) Failed to purchase {stock} on account {account_number}: {error_response}""")
                 else:
                     if error_response is True:
-                        await ctx.send(f'Successfully placed order for account {account_number} for {stock}')
+                        await ctx.send(f'({counter + 1}) Successfully placed sell order for account {account_number} for {stock}')
                     elif error_response is False:
-                        await ctx.send(f'Unknown Error/Timeout selling stock {stock} for account {account_number}')
+                        await ctx.send(f'({counter + 1}) Unknown Error/Timeout selling stock {stock} for account {account_number}')
                         break
                     else:
-                        await ctx.send(f"""Failed to sell {stock} on account {account_number}: {error_response}""")
+                        await ctx.send(f"""({counter + 1}) Failed to sell {stock} on account {account_number}: {error_response}""")
                 counter += 1
                 first = False
         await ctx.send('Tasks completed')
