@@ -37,13 +37,15 @@ class fidelity:
                                                                   '/s-assigned-wrapper/div['
                                                                   '1]/div/div/pvd-field-group/s-root/div/div/s-slot/s'
                                                                   '-assigned-wrapper/pvd-checkbox/s-root/div/label')).click().perform()
-            driver.find_element(By.CSS_SELECTOR, '//*[@id="dom-push-primary-button"]').click()
+            time.sleep(1.1)
+            driver.find_element(By.XPATH, '/html/body/div[1]/div[1]/div[2]/div/div[2]/pvd-field-group/s-root/div/div/s-slot/s-assigned-wrapper/pvd-form/s-root/div/form/s-slot/s-assigned-wrapper/div[2]/div/pvd-button/s-root/button').click()
             while True:
                 await ctx.send('Please approve login on mobile device. Retrying in 5 seconds...')
                 time.sleep(5)
                 try:
                     driver.find_element(By.XPATH, '//*[@id="accountDetails"]/div/div[1]/div[1]/h2/span[2]')
                     await ctx.send('Login approved')
+                    break
                 except NoSuchElementException:
                     continue
         except NoSuchElementException:
