@@ -270,8 +270,6 @@ class fidelity:
                         if after_hours and not buy:
                             driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
                                 str(round(price1 - 0.05, 2)))
-                        driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
-                            str(round(price1 + 0.05, 2)))
                         price0 = round(price1 + 0.05, 2)
                 time.sleep(2)
                 WebDriverWait(driver, 20).until(
