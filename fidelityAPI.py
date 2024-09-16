@@ -91,7 +91,7 @@ class fidelity:
     def __error_popup_check(self, driver):
         try:
             WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="placeOrderBtn"]'))).click()
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="placeOrderBtn"]'))).click()
             WebDriverWait(driver, 20).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="order-reveived-lable"]')))
             return True
@@ -158,10 +158,14 @@ class fidelity:
                     EC.presence_of_element_located((By.XPATH, '//*[@id="dest-acct-dropdown"]'))).click()
                 try:
                     time.sleep(1)
-                    account_number = re.search(r'Z\d{8}', driver.find_element(By.XPATH,
-                                                                              f'//*[@id="account{counter}"]').text).group()
-                    driver.find_element(By.XPATH, f'//*[@id="ett-acct-sel-list"]/ul/li[{counter + 1}]').click()
+                    account_number = re.search(r'Z\d{8}', WebDriverWait(driver, 20).until(
+                        EC.presence_of_element_located((By.XPATH, f'//*[@id="account{counter}"]'))).text).group()
+
+                    WebDriverWait(driver, 20).until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, f'//*[@id="ett-acct-sel-list"]/ul/li[{counter + 1}]'))).click()
                 except NoSuchElementException:
+                    await ctx.send('Error selecting account, please try again.')
                     break
 
                 try:
@@ -273,7 +277,7 @@ class fidelity:
                         price0 = round(price1 + 0.05, 2)
                 time.sleep(2)
                 WebDriverWait(driver, 20).until(
-                    EC.presence_of_element_located((By.XPATH, '//*[@id="previewOrderBtn"]/s-root/button'))).click()
+                    EC.element_to_be_clickable((By.XPATH, '//*[@id="previewOrderBtn"]/s-root/button'))).click()
                 time.sleep(3)
 
                 # check for errors

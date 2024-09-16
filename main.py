@@ -28,22 +28,33 @@ async def on_ready():
 
 @bot.command(name='buy')
 async def buy(ctx, stocks, accounts=None):
-    await ctx.send('Working...')
-    async with ctx.typing():
-        if accounts is None:
-            await f.bs(ctx, True, stocks.split(','))
-        else:
-            await f.bs(ctx, True, stocks.split(','), accounts.split(','))
+    try:
+        await ctx.send('Working...')
+        async with ctx.typing():
+            if accounts is None:
+                await f.bs(ctx, True, stocks.split(','))
+            else:
+                await f.bs(ctx, True, stocks.split(','), accounts.split(','))
+    except Exception as e:
+        ctx.send('There was an unknown error. Please try again or check logs for more info.')
+        with open('log.txt', 'w') as l:
+            l.write(str(e))
 
 
 @bot.command(name='sell')
 async def sell(ctx, stocks, accounts=None):
-    await ctx.send('Working...')
-    async with ctx.typing():
-        if accounts is None:
-            await f.bs(ctx, False, stocks.split(','))
-        else:
-            await f.bs(ctx, False, stocks.split(','), accounts.split(','))
+    try:
+        await ctx.send('Working...')
+        async with ctx.typing():
+            if accounts is None:
+                await f.bs(ctx, False, stocks.split(','))
+            else:
+                await f.bs(ctx, False, stocks.split(','), accounts.split(','))
+    except Exception as e:
+        ctx.send('There was an unknown error. Please try again or check logs for more info.')
+        with open('log.txt', 'w') as l:
+            l.write(str(e))
+
 
 @bot.command(name='balances')
 async def balances(ctx, accounts=None):
