@@ -195,7 +195,7 @@ class fidelity:
                         price0 = round(price1 + 0.05, 2)
                 time.sleep(2)
                 WebDriverWait(driver, 20).until(
-                    EC.presence_of_element_located((By.XPATH, '//*[@id="previewOrderBtn"]/s-root/button'))).click()
+                    EC.element_to_be_clickable((By.XPATH, '//*[@id="previewOrderBtn"]/s-root/button'))).click()
                 time.sleep(3)
 
                 # check for errors
@@ -236,11 +236,12 @@ class fidelity:
                 counter = 0
                 while True:
                     try:
-                        account_number = re.search(r'Z\d{8}', driver.find_element(By.XPATH,
-                                                                                  f'//*[@id="account{counter}"]').text).group()
+                        account_number = re.search(r'Z\d{8}', WebDriverWait(driver, 20).until(
+                            EC.presence_of_element_located((By.XPATH, f'//*[@id="account{counter}"]'))).text).group()
                         if account_number == account:
-                            driver.find_element(By.XPATH,
-                                                f'//*[@id="ett-acct-sel-list"]/ul/li[{counter + 1}]').click()
+                            WebDriverWait(driver, 20).until(
+                                EC.element_to_be_clickable(
+                                    (By.XPATH, f'//*[@id="ett-acct-sel-list"]/ul/li[{counter + 1}]'))).click()
                             break
                         counter += 1
                     except NoSuchElementException:
