@@ -36,7 +36,7 @@ async def buy(ctx, stocks, accounts=None):
             else:
                 await f.bs(ctx, True, stocks.split(','), accounts.split(','))
     except Exception as e:
-        ctx.send('There was an unknown error. Please try again or check logs for more info.')
+        await ctx.send('There was an unknown error. Please try again or check logs for more info.')
         with open('log.txt', 'w') as l:
             l.write(str(e))
 

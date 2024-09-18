@@ -31,14 +31,14 @@ class fidelity:
         WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, '#dom-login-button'))).click()
         time.sleep(5)
         try:
-            actions.move_to_element(driver.find_element(By.XPATH, '//*[@id="dom-widget"]/div/div['
+            actions.move_to_element(WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="dom-widget"]/div/div['
                                                                   '2]/pvd-field-group/s-root/div/div/s-slot/s'
                                                                   '-assigned-wrapper/pvd-form/s-root/div/form/s-slot'
                                                                   '/s-assigned-wrapper/div['
                                                                   '1]/div/div/pvd-field-group/s-root/div/div/s-slot/s'
-                                                                  '-assigned-wrapper/pvd-checkbox/s-root/div/label')).click().perform()
+                                                                  '-assigned-wrapper/pvd-checkbox/s-root/div/label')))).click().perform()
             time.sleep(1.1)
-            driver.find_element(By.XPATH, '/html/body/div[1]/div[1]/div[2]/div/div[2]/pvd-field-group/s-root/div/div/s-slot/s-assigned-wrapper/pvd-form/s-root/div/form/s-slot/s-assigned-wrapper/div[2]/div/pvd-button/s-root/button').click()
+            driver.find_element(By.XPATH, '//*[@id="dom-push-primary-button"]').click()
             while True:
                 await ctx.send('Please approve login on mobile device. Retrying in 5 seconds...')
                 time.sleep(5)
@@ -158,14 +158,16 @@ class fidelity:
                     EC.presence_of_element_located((By.XPATH, '//*[@id="dest-acct-dropdown"]'))).click()
                 try:
                     time.sleep(1)
-                    account_number = re.search(r'Z\d{8}', WebDriverWait(driver, 20).until(
+                    account_number = re.search(r'Z\d{8}', WebDriverWait(driver, 1).until(
                         EC.presence_of_element_located((By.XPATH, f'//*[@id="account{counter}"]'))).text).group()
+
 
                     WebDriverWait(driver, 20).until(
                         EC.element_to_be_clickable(
                             (By.XPATH, f'//*[@id="ett-acct-sel-list"]/ul/li[{counter + 1}]'))).click()
-                except NoSuchElementException:
-                    await ctx.send('Error selecting account, please try again.')
+
+                except TimeoutException:
+                    # if reached end of accounts list
                     break
 
                 try:
