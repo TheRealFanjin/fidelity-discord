@@ -31,7 +31,7 @@ class fidelity:
         WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, '#dom-login-button'))).click()
         time.sleep(5)
         try:
-            actions.move_to_element(WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="dom-widget"]/div/div['
+            actions.move_to_element(WebDriverWait(driver, 8).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="dom-widget"]/div/div['
                                                                   '2]/pvd-field-group/s-root/div/div/s-slot/s'
                                                                   '-assigned-wrapper/pvd-form/s-root/div/form/s-slot'
                                                                   '/s-assigned-wrapper/div['
@@ -48,7 +48,7 @@ class fidelity:
                     break
                 except NoSuchElementException:
                     continue
-        except NoSuchElementException:
+        except TimeoutException:
             pass
 
     def __enter_stock_details(self, driver, buy, stock, after_hours):
