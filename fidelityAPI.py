@@ -97,16 +97,26 @@ class fidelity:
             return True
         except TimeoutException:
             try:
-                error_text = driver.find_element(By.XPATH,
-                                                 f"/html/body/div[3]/ap122489-ett-component/div/pvd3-modal["
-                                                 f"1]/s-root/div/div[2]/div/div[1]/s-slot/s-assigned-wrapper/h2").text
-                driver.find_element(By.XPATH,
-                                    '/html/body/div[3]/ap122489-ett-component/div/pvd3-modal[1]/s-root/div/div['
-                                    '2]/div/button').click()
-                return error_text
+                error_text = driver.find_element(By.XPATH, '/html/body/div[3]/ap122489-ett-component/div/pvd3-ett-modal[1]/s-root/div/div[2]/div/div[1]/s-slot/s-assigned-wrapper/h2').text
+                try:
+                    error_description = driver.find_element(By.XPATH, '/html/body/div[3]/ap122489-ett-component/div/pvd3-ett-modal[1]/s-root/div/div[2]/div/div[2]/s-slot/s-assigned-wrapper/pvd3-ett-inline-alert/s-root/div/div[2]/s-slot/s-assigned-wrapper/div').text
+                except NoSuchElementException:
+                    error_description = error_text
+                driver.find_element(By.XPATH, '/html/body/div[3]/ap122489-ett-component/div/pvd3-ett-modal[1]/s-root/div/div[2]/div/button').click()
+                return f'{error_text}: {error_description}'
 
             except NoSuchElementException:
                 return False
+
+
+    def __after_hours_check(self, driver):
+        try:
+            driver.find_element(By.XPATH,
+                                '/html/body/div[3]/ap122489-ett-component/div/order-entry-base/div/div/div[1]/div/equity-order-selection/div[2]/order-selection/div/div[1]/div/label')
+            return True
+
+        except NoSuchElementException:
+            return False
 
     async def check_balances(self, ctx):
         driver = self.__init_driver()
@@ -145,7 +155,7 @@ class fidelity:
         driver.quit()
         return accounts
 
-    async def __bs_on_all_accounts(self, ctx, buy, stocks):
+    async def bs(self, ctx, buy, stocks, accounts):
         driver = self.__init_driver()
         await self.__login(ctx, driver)
         driver.get('https://digital.fidelity.com/ftgw/digital/trade-equity/index/orderEntry')
@@ -153,161 +163,145 @@ class fidelity:
             counter = 0
             price0 = 0
             first = True
-            while True:
-                WebDriverWait(driver, 20).until(
-                    EC.presence_of_element_located((By.XPATH, '//*[@id="dest-acct-dropdown"]'))).click()
-                try:
-                    time.sleep(1)
-                    account_number = re.search(r'Z\d{8}', WebDriverWait(driver, 1).until(
-                        EC.presence_of_element_located((By.XPATH, f'//*[@id="account{counter}"]'))).text).group()
-
-
-                    WebDriverWait(driver, 20).until(
-                        EC.element_to_be_clickable(
-                            (By.XPATH, f'//*[@id="ett-acct-sel-list"]/ul/li[{counter + 1}]'))).click()
-
-                except TimeoutException:
-                    # if reached end of accounts list
-                    break
-
-                try:
-                    driver.find_element(By.XPATH,
-                                        '/html/body/div[3]/ap122489-ett-component/div/order-entry-base/div/div/div[1]/div/equity-order-selection/div[2]/order-selection/div/div[1]/div/label')
-                    after_hours = True
-
-                except NoSuchElementException:
-                    after_hours = False
-
-                if first:
-                    response = self.__enter_stock_details(driver, buy, stock, after_hours)
-                    if not response:
-                        await ctx.send(f'Error finding {stock} for account {account_number}')
-                        continue
-
-                price1 = float(driver.find_element(By.XPATH, '//*[@id="eq-ticket__last-price"]/span[2]').text[1:])
-                if buy or after_hours:
-                    if price1 > price0:
-                        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]'))).clear()
-                        if buy:
-                            driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
-                                str(round(price1 + 0.05, 2)))
-                        if after_hours and not buy:
-                            driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
-                                str(round(price1 - 0.05, 2)))
-                        price0 = round(price1 + 0.05, 2)
-                time.sleep(2)
-                WebDriverWait(driver, 20).until(
-                    EC.element_to_be_clickable((By.XPATH, '//*[@id="previewOrderBtn"]/s-root/button'))).click()
-                time.sleep(3)
-
-                # check for errors
-                error_response = self.__error_popup_check(driver)
-                if buy:
-                    if error_response is True:
-                        await ctx.send(f'({counter + 1}) Successfully placed buy order for account {account_number} for {stock}')
-                    elif error_response is False:
-                        await ctx.send(f'({counter + 1}) Unknown Error/Timeout purchasing stock {stock} for account {account_number}')
-                        break
-                    else:
-                        await ctx.send(f"""({counter + 1}) Failed to purchase {stock} on account {account_number}: {error_response}""")
-                else:
-                    if error_response is True:
-                        await ctx.send(f'({counter + 1}) Successfully placed sell order for account {account_number} for {stock}')
-                    elif error_response is False:
-                        await ctx.send(f'({counter + 1}) Unknown Error/Timeout selling stock {stock} for account {account_number}')
-                        break
-                    else:
-                        await ctx.send(f"""({counter + 1}) Failed to sell {stock} on account {account_number}: {error_response}""")
-                counter += 1
-                first = False
-        await ctx.send('Tasks completed')
-        driver.quit()
-
-    async def __bs_on_specified_accounts(self, ctx, buy, stocks, accounts):
-        driver = self.__init_driver()
-        await self.__login(ctx, driver)
-        driver.get('https://digital.fidelity.com/ftgw/digital/trade-equity/index/orderEntry')
-        for stock in stocks:
-            price0 = 0
-            first = True
             not_found = False
-            for account in accounts:
-                WebDriverWait(driver, 20).until(
-                    EC.presence_of_element_located((By.XPATH, '//*[@id="dest-acct-dropdown"]'))).click()
-                time.sleep(1.5)
-                counter = 0
+            if not accounts:
                 while True:
+                    WebDriverWait(driver, 20).until(
+                        EC.presence_of_element_located((By.XPATH, '//*[@id="dest-acct-dropdown"]'))).click()
                     try:
-                        account_number = re.search(r'Z\d{8}', WebDriverWait(driver, 20).until(
+                        time.sleep(1)
+                        account_number = re.search(r'Z\d{8}', WebDriverWait(driver, 1).until(
                             EC.presence_of_element_located((By.XPATH, f'//*[@id="account{counter}"]'))).text).group()
-                        if account_number == account:
-                            WebDriverWait(driver, 20).until(
-                                EC.element_to_be_clickable(
-                                    (By.XPATH, f'//*[@id="ett-acct-sel-list"]/ul/li[{counter + 1}]'))).click()
+
+
+                        WebDriverWait(driver, 20).until(
+                            EC.element_to_be_clickable(
+                                (By.XPATH, f'//*[@id="ett-acct-sel-list"]/ul/li[{counter + 1}]'))).click()
+
+                    except TimeoutException:
+                        # if reached end of accounts list
+                        break
+
+                    after_hours =  self.__after_hours_check(driver)
+
+
+                    if first:
+                        response = self.__enter_stock_details(driver, buy, stock, after_hours)
+                        if not response:
+                            await ctx.send(f'Error finding {stock} for account {account_number}')
+                            continue
+
+                    price1 = float(driver.find_element(By.XPATH, '//*[@id="eq-ticket__last-price"]/span[2]').text[1:])
+                    if buy or after_hours:
+                        if price1 > price0:
+                            WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]'))).clear()
+                            if buy:
+                                driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
+                                    str(round(price1 + 0.05, 2)))
+                            if after_hours and not buy:
+                                driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
+                                    str(round(price1 - 0.05, 2)))
+                            price0 = round(price1 + 0.05, 2)
+                    time.sleep(2)
+                    WebDriverWait(driver, 20).until(
+                        EC.element_to_be_clickable((By.XPATH, '//*[@id="previewOrderBtn"]/s-root/button'))).click()
+                    time.sleep(3)
+
+                    # check for errors
+                    error_response = self.__error_popup_check(driver)
+                    if buy:
+                        if error_response is True:
+                            await ctx.send(f'({counter + 1}) Successfully placed buy order for account {account_number} for {stock}')
+                        elif error_response is False:
+                            await ctx.send(f'({counter + 1}) Unknown Error/Timeout purchasing stock {stock} for account {account_number}')
                             break
-                        counter += 1
-                    except NoSuchElementException:
-                        await ctx.send(f'{accounts[0]} not found')
-                        not_found = True
+                        else:
+                            await ctx.send(f"""({counter + 1}) Failed to purchase {stock} on account {account_number}: {error_response}""")
+                    else:
+                        if error_response is True:
+                            await ctx.send(f'({counter + 1}) Successfully placed sell order for account {account_number} for {stock}')
+                        elif error_response is False:
+                            await ctx.send(f'({counter + 1}) Unknown Error/Timeout selling stock {stock} for account {account_number}')
+                            break
+                        else:
+                            await ctx.send(f"""({counter + 1}) Failed to sell {stock} on account {account_number}: {error_response}""")
+                    counter += 1
+                    first = False
+            else:
+                for account in accounts:
+                    WebDriverWait(driver, 20).until(
+                        EC.presence_of_element_located((By.XPATH, '//*[@id="dest-acct-dropdown"]'))).click()
+                    time.sleep(1.5)
+                    counter = 0
+                    while True:
+                        try:
+                            account_number = re.search(r'Z\d{8}', WebDriverWait(driver, 20).until(
+                                EC.presence_of_element_located(
+                                    (By.XPATH, f'//*[@id="account{counter}"]'))).text).group()
+                            if account_number == account:
+                                WebDriverWait(driver, 20).until(
+                                    EC.element_to_be_clickable(
+                                        (By.XPATH, f'//*[@id="ett-acct-sel-list"]/ul/li[{counter + 1}]'))).click()
+                                break
+                            counter += 1
+                        except NoSuchElementException:
+                            await ctx.send(f'{accounts[0]} not found')
+                            not_found = True
 
-                if not_found:
-                    continue
-                try:
-                    driver.find_element(By.XPATH,
-                                        '/html/body/div[3]/ap122489-ett-component/div/order-entry-base/div/div/div[1]/div/equity-order-selection/div[2]/order-selection/div/div[1]/div/label')
-                    after_hours = True
-
-                except NoSuchElementException:
-                    after_hours = False
-
-                if first:
-                    response = self.__enter_stock_details(driver, buy, stock, after_hours)
-                    if not response:
-                        await ctx.send(f'Error finding {stock} for account {account_number}')
+                    if not_found:
                         continue
+                    try:
+                        driver.find_element(By.XPATH,
+                                            '/html/body/div[3]/ap122489-ett-component/div/order-entry-base/div/div/div[1]/div/equity-order-selection/div[2]/order-selection/div/div[1]/div/label')
+                        after_hours = True
 
-                price1 = float(driver.find_element(By.XPATH, '//*[@id="eq-ticket__last-price"]/span[2]').text[1:])
-                if buy or after_hours:
-                    if price1 > price0:
-                        WebDriverWait(driver, 20).until(EC.presence_of_element_located(
-                            (By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]'))).clear()
-                        if buy:
-                            driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
-                                str(round(price1 + 0.05, 2)))
-                        if after_hours and not buy:
-                            driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
-                                str(round(price1 - 0.05, 2)))
-                        price0 = round(price1 + 0.05, 2)
-                time.sleep(2)
-                WebDriverWait(driver, 20).until(
-                    EC.element_to_be_clickable((By.XPATH, '//*[@id="previewOrderBtn"]/s-root/button'))).click()
-                time.sleep(3)
+                    except NoSuchElementException:
+                        after_hours = False
 
-                # check for errors
-                error_response = self.__error_popup_check(driver)
-                if buy:
-                    if error_response is True:
-                        await ctx.send(f'Successfully placed order for account {account_number} for {stock}')
-                    elif error_response is False:
-                        await ctx.send(f'Unknown Error/Timeout purchasing stock {stock} for account {account_number}')
-                        break
+                    if first:
+                        response = self.__enter_stock_details(driver, buy, stock, after_hours)
+                        if not response:
+                            await ctx.send(f'Error finding {stock} for account {account_number}')
+                            continue
+
+                    price1 = float(driver.find_element(By.XPATH, '//*[@id="eq-ticket__last-price"]/span[2]').text[1:])
+                    if buy or after_hours:
+                        if price1 > price0:
+                            WebDriverWait(driver, 20).until(EC.presence_of_element_located(
+                                (By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]'))).clear()
+                            if buy:
+                                driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
+                                    str(round(price1 + 0.05, 2)))
+                            if after_hours and not buy:
+                                driver.find_element(By.XPATH, '//*[@id="eqt-ordsel-limit-price-field"]').send_keys(
+                                    str(round(price1 - 0.05, 2)))
+                            price0 = round(price1 + 0.05, 2)
+                    time.sleep(2)
+                    WebDriverWait(driver, 20).until(
+                        EC.element_to_be_clickable((By.XPATH, '//*[@id="previewOrderBtn"]/s-root/button'))).click()
+                    time.sleep(3)
+
+                    # check for errors
+                    error_response = self.__error_popup_check(driver)
+                    if buy:
+                        if error_response is True:
+                            await ctx.send(f'Successfully placed order for account {account_number} for {stock}')
+                        elif error_response is False:
+                            await ctx.send(
+                                f'Unknown Error/Timeout purchasing stock {stock} for account {account_number}')
+                            break
+                        else:
+                            await ctx.send(
+                                f"""Failed to purchase {stock} on account {account_number}: {error_response}""")
                     else:
-                        await ctx.send(f"""Failed to purchase {stock} on account {account_number}: {error_response}""")
-                else:
-                    if error_response is True:
-                        await ctx.send(f'Successfully placed order for account {account_number} for {stock}')
-                    elif error_response is False:
-                        await ctx.send(f'Unknown Error/Timeout selling stock {stock} for account {account_number}')
-                        break
-                    else:
-                        await ctx.send(f"""Failed to sell {stock} on account {account_number}: {error_response}""")
-                first = False
+                        if error_response is True:
+                            await ctx.send(f'Successfully placed order for account {account_number} for {stock}')
+                        elif error_response is False:
+                            await ctx.send(f'Unknown Error/Timeout selling stock {stock} for account {account_number}')
+                            break
+                        else:
+                            await ctx.send(f"""Failed to sell {stock} on account {account_number}: {error_response}""")
+                    first = False
         await ctx.send('Tasks completed')
         driver.quit()
-
-    async def bs(self, ctx, buy, stocks, accounts=None):
-        if accounts is None:
-            await self.__bs_on_all_accounts(ctx, buy, stocks)
-        else:
-            await self.__bs_on_specified_accounts(ctx, buy, stocks, accounts)
 

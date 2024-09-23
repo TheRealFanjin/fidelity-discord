@@ -32,7 +32,7 @@ async def buy(ctx, stocks, accounts=None):
         await ctx.send('Working...')
         async with ctx.typing():
             if accounts is None:
-                await f.bs(ctx, True, stocks.split(','))
+                await f.bs(ctx, True, stocks.split(','), [])
             else:
                 await f.bs(ctx, True, stocks.split(','), accounts.split(','))
     except Exception as e:
@@ -47,7 +47,7 @@ async def sell(ctx, stocks, accounts=None):
         await ctx.send('Working...')
         async with ctx.typing():
             if accounts is None:
-                await f.bs(ctx, False, stocks.split(','))
+                await f.bs(ctx, False, stocks.split(','), [])
             else:
                 await f.bs(ctx, False, stocks.split(','), accounts.split(','))
     except Exception as e:
