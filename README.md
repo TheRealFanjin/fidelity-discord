@@ -16,8 +16,10 @@
 6. Run main.py `python main.py`
 
 ## Usage
-`.buy {stock} {accounts (leave empty for all)}`
+`.buy {stock} {amount of shares} {accounts (leave empty for all)}`
 
-`.sell {stock} {accounts {leave empty for all)}`
+`.sell {stock} {amount of shares (enter -1 for all)} {accounts {leave empty for all)}`
 
 `.balances {accounts (leave empty for all)}`
+
+*without brackets

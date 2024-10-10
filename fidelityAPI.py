@@ -51,7 +51,7 @@ class fidelity:
         except TimeoutException:
             pass
 
-    def __enter_stock_details(self, driver, buy, stock, after_hours):
+    def __enter_stock_details(self, driver, buy, stock, after_hours, shares):
         actions = ActionChains(driver)
         driver.find_element(By.XPATH, '//*[@id="eq-ticket-dest-symbol"]').send_keys(stock)
         time.sleep(3)
@@ -84,15 +84,21 @@ class fidelity:
                     driver.find_element(By.XPATH, '//*[@id="market-yes"]/s-root/div')).click().perform()
 
         time.sleep(2)
-        driver.find_element(By.XPATH, '//*[@id="eqt-shared-quantity"]').send_keys('1')
+        if buy or int(shares) >= 1:
+            driver.find_element(By.XPATH, '//*[@id="eqt-shared-quantity"]').send_keys(shares)
+        else:
+            # sell all shares
+            actions.move_to_element(driver.find_element(By.XPATH, '//*[@id="eqt-shared-quantity"]')).click().perform()
+            actions.move_to_element(driver.find_element(By.XPATH, '//*[@id="stock-quatity"]/div/div[2]/div/pvd3-ett-button/s-root/button/div/span')).click().perform()
+
         time.sleep(1)
         return True
 
     def __error_popup_check(self, driver):
         try:
-            WebDriverWait(driver, 20).until(
+            WebDriverWait(driver, 4).until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="placeOrderBtn"]'))).click()
-            WebDriverWait(driver, 20).until(
+            WebDriverWait(driver, 4).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="order-reveived-lable"]')))
             return True
         except TimeoutException:
@@ -106,7 +112,15 @@ class fidelity:
                 return f'{error_text}: {error_description}'
 
             except NoSuchElementException:
-                return False
+                # second attempt
+                try:
+                    WebDriverWait(driver, 20).until(
+                        EC.element_to_be_clickable((By.XPATH, '//*[@id="placeOrderBtn"]'))).click()
+                    WebDriverWait(driver, 20).until(
+                        EC.presence_of_element_located((By.XPATH, '//*[@id="order-reveived-lable"]')))
+                    return True
+                except TimeoutException:
+                    return False
 
 
     def __after_hours_check(self, driver):
@@ -155,7 +169,7 @@ class fidelity:
         driver.quit()
         return accounts
 
-    async def bs(self, ctx, buy, stocks, accounts):
+    async def bs(self, ctx, buy, stocks, accounts, shares):
         driver = self.__init_driver()
         await self.__login(ctx, driver)
         driver.get('https://digital.fidelity.com/ftgw/digital/trade-equity/index/orderEntry')
@@ -186,7 +200,7 @@ class fidelity:
 
 
                     if first:
-                        response = self.__enter_stock_details(driver, buy, stock, after_hours)
+                        response = self.__enter_stock_details(driver, buy, stock, after_hours, shares)
                         if not response:
                             await ctx.send(f'Error finding {stock} for account {account_number}')
                             continue
@@ -259,7 +273,7 @@ class fidelity:
                         after_hours = False
 
                     if first:
-                        response = self.__enter_stock_details(driver, buy, stock, after_hours)
+                        response = self.__enter_stock_details(driver, buy, stock, after_hours, shares)
                         if not response:
                             await ctx.send(f'Error finding {stock} for account {account_number}')
                             continue
